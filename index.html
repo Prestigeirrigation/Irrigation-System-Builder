@@ -340,6 +340,74 @@
     cursor:pointer;
   }
   .email-btn:hover{background:var(--brass-light);}
+
+  .install-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(28,25,18,0.55);
+    z-index:10000;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding:0;
+  }
+  @media (min-width:600px){
+    .install-overlay{align-items:center;}
+  }
+  .install-sheet{
+    background:var(--card);
+    border-radius:var(--radius) var(--radius) 0 0;
+    max-width:420px;
+    width:100%;
+    padding:24px 22px calc(24px + env(safe-area-inset-bottom));
+    box-shadow:0 -4px 24px rgba(28,25,18,0.2);
+  }
+  @media (min-width:600px){
+    .install-sheet{border-radius:var(--radius); padding:28px;}
+  }
+  .install-icon-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .install-icon-row img{width:44px;height:44px;border-radius:11px;}
+  .install-title{font-family:'Fraunces',serif;font-weight:600;font-size:19px;color:var(--pine);margin:0;}
+  .install-steps{margin:0 0 18px;padding:0;list-style:none;}
+  .install-steps li{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    font-size:14.5px;
+    line-height:1.5;
+    margin-bottom:10px;
+    color:var(--ink);
+  }
+  .install-steps .num{
+    flex-shrink:0;
+    width:22px;height:22px;
+    border-radius:50%;
+    background:var(--brass);
+    color:#fff;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    font-weight:600;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .install-steps .icon-inline{
+    display:inline-block;
+    padding:1px 7px;
+    background:var(--limestone);
+    border-radius:5px;
+    font-size:13px;
+  }
+  .install-dismiss{
+    width:100%;
+    padding:13px;
+    border-radius:10px;
+    border:1.5px solid var(--limestone-dark);
+    background:transparent;
+    color:var(--sage);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+  }
 </style>
 </head>
 <body>
@@ -776,6 +844,59 @@ function render(){
   if(document.getElementById('summaryContent').style.display==='block') renderSummary();
 }
 
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function getPlatform(){
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/.test(ua);
+  return isIOS ? 'ios' : isAndroid ? 'android' : 'other';
+}
+
+function showInstallPrompt(){
+  if(isStandalone()) return;
+  if(localStorage.getItem('installPromptDismissed')) return;
+
+  const platform = getPlatform();
+  let steps = '';
+  if(platform === 'ios'){
+    steps = `
+      <li><span class="num">1</span>Tap the <span class="icon-inline">Share ⬆</span> icon in Safari's toolbar</li>
+      <li><span class="num">2</span>Scroll down and tap <span class="icon-inline">Add to Home Screen</span></li>
+      <li><span class="num">3</span>Tap <span class="icon-inline">Add</span> — done</li>`;
+  } else if(platform === 'android'){
+    steps = `
+      <li><span class="num">1</span>Tap the <span class="icon-inline">⋮</span> menu in Chrome</li>
+      <li><span class="num">2</span>Tap <span class="icon-inline">Add to Home screen</span> or <span class="icon-inline">Install app</span></li>
+      <li><span class="num">3</span>Confirm — done</li>`;
+  } else {
+    steps = `
+      <li><span class="num">1</span>Open this page on your phone in Safari or Chrome</li>
+      <li><span class="num">2</span>Use the browser menu to add it to your home screen</li>`;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'install-overlay';
+  overlay.id = 'installOverlay';
+  overlay.innerHTML = `
+    <div class="install-sheet">
+      <div class="install-icon-row">
+        <img src="icon-192.png" alt="">
+        <h3 class="install-title">Add to your home screen</h3>
+      </div>
+      <ul class="install-steps">${steps}</ul>
+      <button type="button" class="install-dismiss" data-action="dismissInstall">Not now</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function dismissInstall(){
+  localStorage.setItem('installPromptDismissed', '1');
+  const el = document.getElementById('installOverlay');
+  if(el) el.remove();
+}
+
 document.addEventListener('click', function(e){
   const el = e.target.closest('[data-action]');
   if(!el) return;
@@ -795,10 +916,12 @@ document.addEventListener('click', function(e){
     case 'stepExtra': stepExtra(el.dataset.key, delta); break;
     case 'toggleSummary': toggleSummary(); break;
     case 'emailOrder': emailOrder(); break;
+    case 'dismissInstall': dismissInstall(); break;
   }
 }, false);
 
 render();
+setTimeout(showInstallPrompt, 800);
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
