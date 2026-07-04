@@ -341,6 +341,21 @@
   }
   .email-btn:hover{background:var(--brass-light);}
 
+  .save-later-btn{
+    width:100%;
+    margin-top:10px;
+    padding:13px;
+    border-radius:var(--radius);
+    border:1.5px solid var(--pine);
+    background:transparent;
+    color:var(--pine);
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .save-later-btn:hover{background:var(--limestone-dark);}
+
   .install-overlay{
     position:fixed;
     inset:0;
@@ -624,6 +639,7 @@
     <div id="summaryContent" style="display:none;"></div>
   </div>
   <button type="button" class="email-btn" data-action="payAndSubmit">Pay & Submit Order</button>
+  <button type="button" class="save-later-btn" data-action="saveForLater">Save for Later (someone else will pay)</button>
 
 </div>
 
@@ -1020,6 +1036,28 @@ async function saveOrderToSupabase(){
   return data;
 }
 
+async function saveForLater(){
+  const btn = document.querySelector('[data-action="saveForLater"]');
+  const originalText = btn.textContent;
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+
+  try{
+    const order = await saveOrderToSupabase();
+    if(!order){
+      alert('Could not save the order. Please check your connection and try again.');
+      return;
+    }
+    alert(`Order saved. Whoever holds the payment card can find it under "My Orders" and pay whenever they're ready — nothing gets sent to suppliers until then.`);
+  } catch(err){
+    console.error('Save for later error', err);
+    alert('Something went wrong saving the order. Please try again.');
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
 async function payAndSubmit(){
   const btn = document.querySelector('[data-action="payAndSubmit"]');
   const originalText = btn.textContent;
@@ -1348,6 +1386,7 @@ document.addEventListener('click', function(e){
     case 'stepExtra': stepExtra(el.dataset.key, delta); break;
     case 'toggleSummary': toggleSummary(); break;
     case 'payAndSubmit': payAndSubmit(); break;
+    case 'saveForLater': saveForLater(); break;
     case 'dismissInstall': dismissInstall(); break;
     case 'authSubmit': authSubmit(); break;
     case 'authToggleMode': authToggleMode(); break;
