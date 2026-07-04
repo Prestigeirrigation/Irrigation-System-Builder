@@ -520,6 +520,9 @@
 // ===================== PRICING ENGINE (ported from Job Order Builder master workbook) =====================
 const MARGIN = 0.05;
 
+const SUPABASE_URL = 'https://zfjszezqmsasctgbcvqo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmanN6ZXpxbXNhc2N0Z2JjdnFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMzkxMDAsImV4cCI6MjA5ODcxNTEwMH0.IoGDj3ya6Z1-ewqrGShEdq_mRVHw4Id6ZObwqXakJUE';
+
 const RATES = {
   body1804: 9.0286, sj2015: 7.425,
   head5004: 26.9005,
@@ -843,7 +846,46 @@ function renderSummary(){
   }).join('');
 }
 
-function emailOrder(){
+async function saveOrderToSupabase(){
+  const {buy, sell} = computeTotal();
+  const jobRef = document.getElementById('jobRef').value || null;
+  const shipAddr = document.getElementById('shipAddr').value || null;
+
+  const payload = {
+    job_reference: jobRef,
+    shipping_address: shipAddr,
+    system_type: system,
+    zones: zones,
+    extras: extras,
+    total_buy: Math.round(buy*100)/100,
+    total_sell: Math.round(sell*100)/100,
+    margin: MARGIN,
+    status: 'submitted'
+  };
+
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    });
+    if(!res.ok){
+      console.error('Supabase save failed', res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch(err){
+    console.error('Supabase save error', err);
+    return false;
+  }
+}
+
+async function emailOrder(){
   const items = computeBOM();
   const {sell} = computeTotal();
   const jobRef = document.getElementById('jobRef').value || '(no job reference entered)';
@@ -855,6 +897,8 @@ function emailOrder(){
   body += `\n--- HYDROFLOW ---\n`;
   hf.forEach(it=> body += `${it.qty} x ${it.code} — ${it.desc}\n`);
   const subject = encodeURIComponent(`Irrigation Order — ${jobRef}`);
+
+  await saveOrderToSupabase();
   window.location.href = `mailto:orders@prestigeirrigation.co.nz?subject=${subject}&body=${encodeURIComponent(body)}`;
 }
 
