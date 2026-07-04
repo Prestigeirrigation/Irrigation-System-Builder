@@ -453,7 +453,24 @@
     border-radius:10px;
     padding:12px 14px;
     margin-bottom:10px;
+    cursor:pointer;
+    transition:border-color .15s ease;
   }
+  .order-card:hover{border-color:var(--brass);}
+  .pay-now-btn{
+    margin-top:10px;
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    background:var(--brass);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .pay-now-btn:hover{background:var(--brass-light);}
   .order-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
   .order-ref{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--pine);}
   .order-date{font-size:11.5px;color:var(--sage);font-family:'IBM Plex Mono',monospace;}
@@ -1195,6 +1212,8 @@ async function checkSession(){
 }
 
 // ===================== MY ORDERS =====================
+let loadedOrders = [];
+
 async function openOrders(){
   document.getElementById('ordersOverlay').style.display = 'flex';
   document.getElementById('ordersList').innerHTML = '<p style="color:var(--sage);font-size:14px;">Loading…</p>';
@@ -1209,6 +1228,7 @@ async function openOrders(){
     document.getElementById('ordersList').innerHTML = `<p style="color:var(--warn);font-size:14px;">Couldn't load orders: ${error.message}</p>`;
     return;
   }
+  loadedOrders = data;
   if(!data.length){
     document.getElementById('ordersList').innerHTML = '<p style="color:var(--sage);font-size:14px;">No orders yet.</p>';
     return;
@@ -1217,8 +1237,11 @@ async function openOrders(){
   document.getElementById('ordersList').innerHTML = data.map(o => {
     const date = new Date(o.created_at).toLocaleDateString('en-NZ', {day:'numeric',month:'short',year:'numeric'});
     const statusLabel = (o.status || 'submitted').replace(/_/g,' ');
+    const payButton = o.status === 'pending_payment'
+      ? `<button type="button" class="pay-now-btn" data-action="payPendingOrder" data-order-id="${o.id}">Pay Now</button>`
+      : '';
     return `
-      <div class="order-card">
+      <div class="order-card" data-action="viewOrder" data-order-id="${o.id}">
         <div class="order-card-top">
           <div>
             <div class="order-ref">${o.job_reference || '(no job reference)'}</div>
@@ -1227,8 +1250,79 @@ async function openOrders(){
           <span class="status-badge status-${o.status}">${statusLabel}</span>
         </div>
         <div class="order-total">$${Number(o.total_sell).toLocaleString('en-NZ',{minimumFractionDigits:2})} ex GST</div>
+        ${payButton}
       </div>`;
   }).join('');
+}
+
+function viewOrder(orderId){
+  const order = loadedOrders.find(o => o.id === orderId);
+  if(!order) return;
+
+  // Temporarily swap the builder's working state to compute this order's
+  // breakdown using the same (already-tested) pricing logic, then restore it.
+  const savedZones = zones, savedExtras = extras, savedSystem = system;
+  zones = order.zones || [];
+  extras = order.extras || {flags:0,pn8:0,lat19:0,cable:0};
+  system = order.system_type;
+
+  const items = computeBOM();
+  const cats = [
+    {key:'mainline', title:'1. Mainline Connection', color:'1F4E78'},
+    {key:'manifold', title:'2. Valve Manifold', color:'7B3F00'},
+    {key:'lateral', title:'3. Lateral Components', color:'2E7D32'},
+  ];
+  const rowHtml = it => `<div class="summary-row ${it.tbc?'tbc':''}"><span>${it.desc}${it.code!=='(auto)'?`<br><span class="code">${it.code}</span>`:''}</span><span class="qty">${it.qty}</span></div>`;
+  const bodyHtml = cats.map(c=>{
+    const catItems = items.filter(it=>it.cat===c.key);
+    if(!catItems.length) return '';
+    return `<div class="summary-group"><span class="summary-group-title" style="background:#${c.color};">${c.title}</span>${catItems.map(rowHtml).join('')}</div>`;
+  }).join('');
+
+  // Restore the live builder state
+  zones = savedZones; extras = savedExtras; system = savedSystem;
+
+  const date = new Date(order.created_at).toLocaleDateString('en-NZ', {day:'numeric',month:'short',year:'numeric'});
+  const statusLabel = (order.status || 'submitted').replace(/_/g,' ');
+  document.getElementById('ordersList').innerHTML = `
+    <button type="button" class="header-link" data-action="backToOrdersList" style="margin-bottom:14px;">&larr; Back to orders</button>
+    <h4 style="font-family:'Fraunces',serif;color:var(--pine);margin:0 0 4px;">${order.job_reference || '(no job reference)'}</h4>
+    <p style="font-size:12.5px;color:var(--sage);margin:0 0 4px;">${order.shipping_address || ''}</p>
+    <p style="font-size:12.5px;color:var(--sage);margin:0 0 14px;">${date} &middot; <span class="status-badge status-${order.status}">${statusLabel}</span></p>
+    <p style="font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:16px;margin:0 0 14px;">$${Number(order.total_sell).toLocaleString('en-NZ',{minimumFractionDigits:2})} ex GST</p>
+    ${order.status === 'pending_payment' ? `<button type="button" class="pay-now-btn" data-action="payPendingOrder" data-order-id="${order.id}" style="width:100%;margin-bottom:16px;">Pay Now</button>` : ''}
+    ${bodyHtml}
+  `;
+}
+
+function backToOrdersList(){
+  openOrders();
+}
+
+async function payPendingOrder(orderId){
+  const order = loadedOrders.find(o => o.id === orderId);
+  if(!order) return;
+
+  try{
+    const res = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        orderId: order.id,
+        amountCents: Math.round(Number(order.total_sell) * 100),
+        jobReference: order.job_reference || ''
+      })
+    });
+    const result = await res.json();
+    if(!res.ok || !result.url){
+      alert('Could not start payment for this order. Please try again.');
+      return;
+    }
+    window.location.href = result.url;
+  } catch(err){
+    console.error('Pay pending order error', err);
+    alert('Something went wrong starting payment. Please try again.');
+  }
 }
 
 function closeOrders(){
@@ -1260,6 +1354,9 @@ document.addEventListener('click', function(e){
     case 'signOut': signOut(); break;
     case 'openOrders': openOrders(); break;
     case 'closeOrders': closeOrders(); break;
+    case 'viewOrder': viewOrder(el.dataset.orderId); break;
+    case 'backToOrdersList': backToOrdersList(); break;
+    case 'payPendingOrder': payPendingOrder(el.dataset.orderId); break;
   }
 }, false);
 
