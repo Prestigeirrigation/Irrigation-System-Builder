@@ -514,7 +514,7 @@
   </div>
 </div>
 
-<footer>Prestige Irrigation Services · Green Fox Supply</footer>
+<footer>Prestige Irrigation Services</footer>
 
 <script>
 // ===================== PRICING ENGINE (ported from Job Order Builder master workbook) =====================
@@ -813,11 +813,11 @@ function emailOrder(){
   const {sell} = computeTotal();
   const jobRef = document.getElementById('jobRef').value || '(no job reference entered)';
   const shipAddr = document.getElementById('shipAddr').value || '(no shipping address entered)';
-  let body = `GREEN FOX ORDER\nJob Reference: ${jobRef}\nShipping Address: ${shipAddr}\nSystem: ${system}\nTotal (ex GST): $${sell.toFixed(2)}\n\n--- GOLF & IRRIGATION ---\n`;
+  let body = `IRRIGATION ORDER\nJob Reference: ${jobRef}\nShipping Address: ${shipAddr}\nSystem: ${system}\nTotal (ex GST): $${sell.toFixed(2)}\n\n--- GOLF & IRRIGATION ---\n`;
   gi.forEach(r=> body += `${r[2]} x ${r[0]} — ${r[1]}\n`);
   body += `\n--- HYDROFLOW ---\n`;
   hf.forEach(r=> body += `${r[2]} x ${r[0]} — ${r[1]}\n`);
-  const subject = encodeURIComponent(`Green Fox Order — ${jobRef}`);
+  const subject = encodeURIComponent(`Irrigation Order — ${jobRef}`);
   window.location.href = `mailto:orders@prestigeirrigation.co.nz?subject=${subject}&body=${encodeURIComponent(body)}`;
 }
 
