@@ -616,6 +616,16 @@ function zoneLineCost(z){
   return 0;
 }
 
+function controllerLabel(activeZones){
+  if(activeZones===0) return '';
+  if(system==='AC') return 'RC2 8-Station WiFi Controller';
+  return activeZones<=2 ? 'ESP-BAT-BT 2-Station' : activeZones<=4 ? 'ESP-BAT-BT 4-Station' : 'ESP-BAT-BT 6-Station';
+}
+function boxLabel(activeZones){
+  if(activeZones===0) return '';
+  return activeZones<=3 ? '1x Valve Box Standard 1419' : activeZones<=5 ? '1x Valve Box Jumbo' : '2x Valve Box Standard 1419';
+}
+
 function computeTotal(){
   const activeZones = zones.filter(z=>z.type).length;
   let buy = 0;
@@ -727,54 +737,70 @@ function computeBOM(){
   const modelTotals = {m1:0,m2:0,m3:0,m4:0,m5:0,m6:0};
   c1804.forEach(z=> MODEL_LIST.forEach(m=> modelTotals[m.key]+=z.models[m.key]));
 
-  const gi = [
-    ['RB1804SAM','1804 SprayBody Less Nozzle with SAM', heads1804],
-    ['1502489','Hunter MP1000 Rotator 90-210deg', modelTotals.m1],
-    ['1502471','Hunter MP1000 Rotator 360deg', modelTotals.m2],
-    ['1502492','Hunter MP2000 Rotator 90-210deg', modelTotals.m3],
-    ['1502494','Hunter MP2000 Rotator 360deg', modelTotals.m4],
-    ['1502495','Hunter MP3000 Rotator 90-210deg', modelTotals.m5],
-    ['1501737','Hunter MP3000 Rotator 360deg', modelTotals.m6],
-    ['MQBS36DC12','Micro-Quick Spray 12 GPH DC Pattern (Blue)', headsMicro],
-    ['RB5004PLPC','5004 Plus 4in Rotor', heads5004],
-    ['SJ2015','Hunter Swing Joint 20mm x 15mm BSP', heads1804+heads5004],
-    [system==='AC'?'RB100DVF':'RB100DVFDCL', `25mm DV Valve (${system==='AC'?'AC coil':'9VDC latch'}) — solenoids + master valve`, activeZones+1],
-    ['GUT25','Guyco Threaded Tee 25mm (manifold, 1/station)', activeZones],
-    ['RBVBSTD','Valve Box Standard 1419 (mainline box)', 1],
-    ['RBF25D','25mm Disc Filter 120 Mesh', 1],
-    ['TBC','Watts Dual Check Valve U2-2 25mm — no code confirmed', 1, true],
-    ['RBPSIM40','20mm Pressure Regulator 40psi (drip zones)', cDrip.length],
-    ['PC13160301','Hydro Dripline 1.6L/Hr 100m rolls', dripRolls],
-    ['TBC','Lateral End Plug 19mm — assumption 1/drip zone', cDrip.length, true],
-    ['TBC','Lateral Reducing Tee 19-13mm — no code/price, assumption 1/drip zone', cDrip.length, true],
-    ['TBC','2519 Lateral Male Director ($1.07 confirmed, code TBC)', cMicro.length, true],
-    ['RBFLAG','Marker Flag Bundle of 100', extras.flags],
-    ['MDPP2508.100','MDPE Pipe PN8 25mm 100m roll', extras.pn8],
-    ['LAT19100','Lateral Tube 19mm 100m roll', extras.lat19],
-    ['5804048','MDPE Pipe PN12.5 25m roll (mains)', 1],
-    ['CEELON12','Ceelon Thread Tape 12mm', 3+activeZones],
-    ['RBC95100','9-Core AC Control Cable 100m roll', extras.cable],
-    ['RBWCUL100','Wire Connector 600V (entry kit, 1/box)', boxCount],
-    ['GUP25','Guyco Hex Plug 25mm (entry kit, 1/box)', boxCount],
-    ['GUMFE25','Guyco Male/Fem Elbow 25mm (entry kit, 2/box)', 2*boxCount],
-  ].filter(r=>r[2]>0);
+  // Each item: {code, desc, qty, cat, supplier, tbc}
+  const items = [
+    // --- MAINLINE CONNECTION ---
+    {code:'ET25', desc:'Tee into the mains supply feed', qty:1, cat:'mainline', supplier:'hf'},
+    {code:'5804048', desc:'PN12.5 mains pipe (25m roll) — tap to isolation valve', qty:1, cat:'mainline', supplier:'gi'},
+    {code:'GUBV25', desc:'Isolation ball valve — first shutoff after the tap', qty:1, cat:'mainline', supplier:'hf'},
+    {code:'EE25', desc:'Elbow to route into the isolation valve', qty:1, cat:'mainline', supplier:'hf'},
+    {code:'EMC25', desc:'Male couplings either side of the isolation valve', qty:2, cat:'mainline', supplier:'hf'},
+    {code:'GUHN25', desc:'Hex nipple, isolation valve to filter', qty:1, cat:'mainline', supplier:'hf'},
+    {code:'RBF25D', desc:'Disc filter — protects downstream valves and heads', qty:1, cat:'mainline', supplier:'gi'},
+    {code:'TBC', desc:'Watts Dual Check Valve — backflow prevention (code TBC)', qty:1, cat:'mainline', supplier:'gi', tbc:true},
+    {code:system==='AC'?'RB100DVF':'RB100DVFDCL', desc:`Master valve (${system==='AC'?'AC coil':'9VDC latch'})`, qty:1, cat:'mainline', supplier:'gi'},
+    {code:'RBVBSTD', desc:'Mainline box — houses the run above', qty:1, cat:'mainline', supplier:'gi'},
+    {code:'CEELON12', desc:'Thread tape — isolation valve + master valve', qty:2, cat:'mainline', supplier:'gi'},
 
-  const hf = [
-    ['EFT25','Esse Female Tee 25mm', 4*c1804.length + 2*c5004.length],
-    ['EFE25','Esse Female Elbow 25mm', 2*c1804.length + 2*c5004.length],
-    ['GURB2015','Guyco Reducing Bush 20x15mm (per 5004 head)', heads5004],
-    ['GURHN2520','Guyco Reducing Nipple 25x20mm (drip)', cDrip.length],
-    ['EMC25','Esse Male Coupling 25mm', nonDripNonMicroZones + 2 + boxCount],
-    ['EE25','Esse Elbow 25mm', 1 + 2*nonDripNonMicroZones + boxCount],
-    ['ET25','Esse Tee 25mm', 1 + 2*nonDripNonMicroZones + boxCount],
-    ['GUHN25','Guyco Threaded Hex Nipple 25mm', 1 + 2*activeZones],
-    ['GUBV25','Guyco Ball Valve 25mm', 1 + boxCount],
-    ['LE19','Lateral Elbow 19mm (drip + micro spray)', 2*(cDrip.length+cMicro.length)],
-    ['EPL25','Esse Plug 25mm (entry kit, 1/box)', boxCount],
-  ].filter(r=>r[2]>0);
+    // --- VALVE MANIFOLD ---
+    {code:system==='AC'?'RB100DVF':'RB100DVFDCL', desc:'Zone solenoid valve — one per zone', qty:activeZones, cat:'manifold', supplier:'gi'},
+    {code:'GUT25', desc:'Manifold tee — joins each solenoid to the feed', qty:activeZones, cat:'manifold', supplier:'hf'},
+    {code:'GUHN25', desc:'Manifold hex nipples — 2 per solenoid', qty:2*activeZones, cat:'manifold', supplier:'hf'},
+    {code:'(auto)', desc:`Zone valve box — ${boxLabel(activeZones)}`, qty:1, cat:'manifold', supplier:'gi'},
+    {code:'ET25', desc:'Box entry tee (1 per physical box)', qty:boxCount, cat:'manifold', supplier:'hf'},
+    {code:'EPL25', desc:'Box entry plug (1 per physical box)', qty:boxCount, cat:'manifold', supplier:'hf'},
+    {code:'EE25', desc:'Box entry elbow (1 per physical box)', qty:boxCount, cat:'manifold', supplier:'hf'},
+    {code:'EMC25', desc:'Box entry male coupling (1 per physical box)', qty:boxCount, cat:'manifold', supplier:'hf'},
+    {code:'GUBV25', desc:'Box entry isolation valve — own shutoff per box', qty:boxCount, cat:'manifold', supplier:'hf'},
+    {code:'GUP25', desc:'Box entry hex plug (1 per physical box)', qty:boxCount, cat:'manifold', supplier:'gi'},
+    {code:'GUMFE25', desc:'Male/fem elbows for snaking the manifold (2 per box)', qty:2*boxCount, cat:'manifold', supplier:'gi'},
+    {code:'RBWCUL100', desc:'Waterproof wire connector per box', qty:boxCount, cat:'manifold', supplier:'gi'},
+    {code:'RBPSIM40', desc:'Pressure regulator — drip zones only, sits at the valve', qty:cDrip.length, cat:'manifold', supplier:'gi'},
+    {code:'(auto)', desc:`Controller — ${controllerLabel(activeZones)}`, qty:1, cat:'manifold', supplier:'gi'},
+    {code:'RBC95100', desc:'AC control cable, 100m roll — AC systems only', qty:extras.cable, cat:'manifold', supplier:'gi'},
+    {code:'CEELON12', desc:'Thread tape — one roll per zone solenoid', qty:activeZones, cat:'manifold', supplier:'gi'},
 
-  return {gi, hf};
+    // --- LATERAL COMPONENTS ---
+    {code:'RB1804SAM', desc:'1804 spray body — MP Rotor zones', qty:heads1804, cat:'lateral', supplier:'gi'},
+    {code:'1502489', desc:'Hunter MP1000 Rotator 90-210°', qty:modelTotals.m1, cat:'lateral', supplier:'gi'},
+    {code:'1502471', desc:'Hunter MP1000 Rotator 360°', qty:modelTotals.m2, cat:'lateral', supplier:'gi'},
+    {code:'1502492', desc:'Hunter MP2000 Rotator 90-210°', qty:modelTotals.m3, cat:'lateral', supplier:'gi'},
+    {code:'1502494', desc:'Hunter MP2000 Rotator 360°', qty:modelTotals.m4, cat:'lateral', supplier:'gi'},
+    {code:'1502495', desc:'Hunter MP3000 Rotator 90-210°', qty:modelTotals.m5, cat:'lateral', supplier:'gi'},
+    {code:'1501737', desc:'Hunter MP3000 Rotator 360°', qty:modelTotals.m6, cat:'lateral', supplier:'gi'},
+    {code:'RB5004PLPC', desc:'5004 Plus 4in rotor body', qty:heads5004, cat:'lateral', supplier:'gi'},
+    {code:'MQBS36DC12', desc:'Micro-Quick Spray head (Blue, 12 GPH)', qty:headsMicro, cat:'lateral', supplier:'gi'},
+    {code:'SJ2015', desc:'Swing joint — one per spray/rotor head', qty:heads1804+heads5004, cat:'lateral', supplier:'gi'},
+    {code:'EFT25', desc:'Fitting routing MDPE lateral pipe (tee)', qty:4*c1804.length + 2*c5004.length, cat:'lateral', supplier:'hf'},
+    {code:'EFE25', desc:'Fitting routing MDPE lateral pipe (elbow)', qty:2*c1804.length + 2*c5004.length, cat:'lateral', supplier:'hf'},
+    {code:'GURB2015', desc:'Reducing bush — one per 5004 head, matches swing joint size', qty:heads5004, cat:'lateral', supplier:'hf'},
+    {code:'EE25', desc:'Elbow — MDPE navigation around the valve box (2/non-drip/non-micro zone)', qty:2*nonDripNonMicroZones, cat:'lateral', supplier:'hf'},
+    {code:'ET25', desc:'Tee — MDPE navigation around the valve box (2/non-drip/non-micro zone)', qty:2*nonDripNonMicroZones, cat:'lateral', supplier:'hf'},
+    {code:'GURHN2520', desc:'Reducing nipple — drip zone step-down', qty:cDrip.length, cat:'lateral', supplier:'hf'},
+    {code:'PC13160301', desc:'Dripline, 1.6L/hr emitters, 100m roll', qty:dripRolls, cat:'lateral', supplier:'gi'},
+    {code:'LE19', desc:'Lateral elbow — drip + micro spray lead-in (2/zone)', qty:2*(cDrip.length+cMicro.length), cat:'lateral', supplier:'hf'},
+    {code:'TBC', desc:'2519 Lateral Male Director — micro spray step-down ($1.07 confirmed, code TBC)', qty:cMicro.length, cat:'lateral', supplier:'gi', tbc:true},
+    {code:'LAT19100', desc:'Plain 19mm lateral tube, 100m roll — feeds drip/micro spray', qty:extras.lat19, cat:'lateral', supplier:'gi'},
+    {code:'TBC', desc:'Lateral End Plug — caps each drip run (assumption: 1/drip zone)', qty:cDrip.length, cat:'lateral', supplier:'gi', tbc:true},
+    {code:'TBC', desc:'Lateral Reducing Tee, 19mm-13mm — steps into dripline (no code yet)', qty:cDrip.length, cat:'lateral', supplier:'gi', tbc:true},
+    {code:'MDPP2508.100', desc:'MDPE PN8 lateral distribution pipe, 100m roll', qty:extras.pn8, cat:'lateral', supplier:'gi'},
+    {code:'CEELON12', desc:'Thread tape — one flat roll, all swing joints', qty:1, cat:'lateral', supplier:'gi'},
+    {code:'RBFLAG', desc:'Marker flags — mark head/line locations on site', qty:extras.flags, cat:'lateral', supplier:'gi'},
+  ];
+
+  return items.filter(it=>it.qty>0);
 }
+
 
 function getWarnings(){
   const warnings = [];
@@ -799,24 +825,35 @@ function toggleSummary(){
 }
 
 function renderSummary(){
-  const {gi, hf} = computeBOM();
-  const combined = [...gi, ...hf];
-  const rowHtml = r => `<div class="summary-row ${r[3]?'tbc':''}"><span>${r[1]}<br><span class="code">${r[0]}</span></span><span class="qty">${r[2]}</span></div>`;
-  document.getElementById('summaryContent').innerHTML = `
-    <div class="summary-group">
-      ${combined.map(rowHtml).join('')}
-    </div>`;
+  const items = computeBOM();
+  const rowHtml = it => `<div class="summary-row ${it.tbc?'tbc':''}"><span>${it.desc}${it.code!=='(auto)'?`<br><span class="code">${it.code}</span>`:''}</span><span class="qty">${it.qty}</span></div>`;
+  const cats = [
+    {key:'mainline', title:'1. Mainline Connection', color:'1F4E78'},
+    {key:'manifold', title:'2. Valve Manifold', color:'7B3F00'},
+    {key:'lateral', title:'3. Lateral Components', color:'2E7D32'},
+  ];
+  document.getElementById('summaryContent').innerHTML = cats.map(c=>{
+    const catItems = items.filter(it=>it.cat===c.key);
+    if(!catItems.length) return '';
+    return `
+      <div class="summary-group">
+        <span class="summary-group-title" style="background:#${c.color};">${c.title}</span>
+        ${catItems.map(rowHtml).join('')}
+      </div>`;
+  }).join('');
 }
 
 function emailOrder(){
-  const {gi, hf} = computeBOM();
+  const items = computeBOM();
   const {sell} = computeTotal();
   const jobRef = document.getElementById('jobRef').value || '(no job reference entered)';
   const shipAddr = document.getElementById('shipAddr').value || '(no shipping address entered)';
+  const gi = items.filter(it=>it.supplier==='gi');
+  const hf = items.filter(it=>it.supplier==='hf');
   let body = `IRRIGATION ORDER\nJob Reference: ${jobRef}\nShipping Address: ${shipAddr}\nSystem: ${system}\nTotal (ex GST): $${sell.toFixed(2)}\n\n--- GOLF & IRRIGATION ---\n`;
-  gi.forEach(r=> body += `${r[2]} x ${r[0]} — ${r[1]}\n`);
+  gi.forEach(it=> body += `${it.qty} x ${it.code} — ${it.desc}\n`);
   body += `\n--- HYDROFLOW ---\n`;
-  hf.forEach(r=> body += `${r[2]} x ${r[0]} — ${r[1]}\n`);
+  hf.forEach(it=> body += `${it.qty} x ${it.code} — ${it.desc}\n`);
   const subject = encodeURIComponent(`Irrigation Order — ${jobRef}`);
   window.location.href = `mailto:orders@prestigeirrigation.co.nz?subject=${subject}&body=${encodeURIComponent(body)}`;
 }
