@@ -408,13 +408,119 @@
     font-size:14px;
     cursor:pointer;
   }
+
+  .auth-screen{
+    position:fixed;inset:0;
+    background:var(--pine);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+    z-index:20000;
+  }
+  .auth-card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:32px 26px;
+    max-width:380px;
+    width:100%;
+    box-shadow:var(--shadow);
+  }
+  .auth-logo{height:26px;width:auto;max-width:160px;display:block;margin:0 auto 20px;}
+  .auth-title{font-family:'Fraunces',serif;font-weight:600;font-size:22px;color:var(--pine);margin:0 0 20px;text-align:center;}
+  .auth-error{
+    background:var(--warn-bg);color:var(--warn);
+    padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:14px;
+  }
+  .auth-toggle{
+    text-align:center;font-size:13.5px;color:var(--sage);margin-top:16px;cursor:pointer;
+  }
+  .auth-toggle span{color:var(--brass);font-weight:700;}
+
+  .header-top-row{display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:6px;}
+  .header-actions{display:flex;gap:14px;}
+  .header-link{
+    background:none;border:none;
+    color:var(--brass-light);
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    padding:4px 0;
+    text-decoration:underline;
+  }
+
+  .order-card{
+    border:1.5px solid var(--limestone-dark);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:10px;
+  }
+  .order-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  .order-ref{font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--pine);}
+  .order-date{font-size:11.5px;color:var(--sage);font-family:'IBM Plex Mono',monospace;}
+  .order-total{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ink);}
+  .status-badge{
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  .status-submitted{background:#E3E9E6;color:var(--pine);}
+  .status-pending_payment{background:#FCEFDB;color:#96650F;}
+  .status-paid{background:#DCEFE3;color:#1C6B3F;}
+  .status-sent_to_suppliers{background:#DCE6F5;color:#1F4E78;}
+  .status-cancelled{background:var(--warn-bg);color:var(--warn);}
 </style>
 </head>
 <body>
 
+<!-- ===== AUTH SCREEN ===== -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <img src="logo-white.png" alt="" class="auth-logo">
+    <h2 class="auth-title" id="authTitle">Sign In</h2>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Email</label>
+      <input type="email" id="authEmail" placeholder="you@example.com">
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Password</label>
+      <input type="password" id="authPassword" placeholder="••••••••">
+    </div>
+    <div class="field" id="authNameField" style="margin-bottom:14px;display:none;">
+      <label>Full Name</label>
+      <input type="text" id="authName" placeholder="Your name">
+    </div>
+    <div class="auth-error" id="authError" style="display:none;"></div>
+    <button type="button" class="add-zone-btn" id="authSubmitBtn" style="border-style:solid;background:var(--pine);color:#fff;border-color:var(--pine);" data-action="authSubmit">Sign In</button>
+    <p class="auth-toggle" id="authToggleText" data-action="authToggleMode">Don't have an account? <span>Sign up</span></p>
+  </div>
+</div>
+
+<!-- ===== MY ORDERS OVERLAY ===== -->
+<div id="ordersOverlay" class="install-overlay" style="display:none;align-items:center;">
+  <div class="install-sheet" style="max-height:80vh;overflow-y:auto;">
+    <div class="install-icon-row" style="justify-content:space-between;">
+      <h3 class="install-title">My Orders</h3>
+      <button type="button" class="zone-remove" data-action="closeOrders">Close</button>
+    </div>
+    <div id="ordersList"></div>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
+
 <header>
   <div class="wrap">
-    <img src="logo-white.png" alt="Prestige Irrigation Services" class="header-logo">
+    <div class="header-top-row">
+      <img src="logo-white.png" alt="Prestige Irrigation Services" class="header-logo">
+      <div class="header-actions">
+        <button type="button" class="header-link" data-action="openOrders">My Orders</button>
+        <button type="button" class="header-link" data-action="signOut">Sign Out</button>
+      </div>
+    </div>
     <h1>Irrigation System Builder</h1>
     <p class="sub">Build the zone list, confirm the system, and the parts order writes itself.</p>
   </div>
@@ -516,12 +622,19 @@
 
 <footer>Prestige Irrigation Services</footer>
 
+</div><!-- /appContent -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ===================== PRICING ENGINE (ported from Job Order Builder master workbook) =====================
 const MARGIN = 0.05;
 
 const SUPABASE_URL = 'https://zfjszezqmsasctgbcvqo.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmanN6ZXpxbXNhc2N0Z2JjdnFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxMzkxMDAsImV4cCI6MjA5ODcxNTEwMH0.IoGDj3ya6Z1-ewqrGShEdq_mRVHw4Id6ZObwqXakJUE';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+let authMode = 'signin'; // or 'signup'
 
 const RATES = {
   body1804: 9.0286, sj2015: 7.425,
@@ -860,29 +973,16 @@ async function saveOrderToSupabase(){
     total_buy: Math.round(buy*100)/100,
     total_sell: Math.round(sell*100)/100,
     margin: MARGIN,
-    status: 'submitted'
+    status: 'submitted',
+    created_by: currentUser ? currentUser.id : null
   };
 
-  try{
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(payload)
-    });
-    if(!res.ok){
-      console.error('Supabase save failed', res.status, await res.text());
-      return false;
-    }
-    return true;
-  } catch(err){
-    console.error('Supabase save error', err);
+  const { error } = await supabaseClient.from('orders').insert(payload);
+  if(error){
+    console.error('Supabase save failed', error.message);
     return false;
   }
+  return true;
 }
 
 async function emailOrder(){
@@ -978,6 +1078,120 @@ function dismissInstall(){
   if(el) el.remove();
 }
 
+// ===================== AUTH =====================
+function showApp(){
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appContent').style.display = 'block';
+}
+function showAuthScreen(){
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('appContent').style.display = 'none';
+}
+
+function authToggleMode(){
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  document.getElementById('authTitle').textContent = authMode === 'signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('authSubmitBtn').textContent = authMode === 'signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('authNameField').style.display = authMode === 'signup' ? 'block' : 'none';
+  document.getElementById('authToggleText').innerHTML = authMode === 'signin'
+    ? `Don't have an account? <span>Sign up</span>`
+    : `Already have an account? <span>Sign in</span>`;
+  document.getElementById('authError').style.display = 'none';
+}
+
+function showAuthError(msg){
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function authSubmit(){
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const fullName = document.getElementById('authName').value.trim();
+
+  if(!email || !password){
+    showAuthError('Enter your email and password.');
+    return;
+  }
+
+  if(authMode === 'signup'){
+    const { data, error } = await supabaseClient.auth.signUp({
+      email, password,
+      options: { data: { full_name: fullName } }
+    });
+    if(error){ showAuthError(error.message); return; }
+    if(data.user && !data.session){
+      showAuthError('Check your email to confirm your account, then sign in.');
+      return;
+    }
+    currentUser = data.user;
+    showApp();
+  } else {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if(error){ showAuthError(error.message); return; }
+    currentUser = data.user;
+    showApp();
+  }
+}
+
+async function signOut(){
+  await supabaseClient.auth.signOut();
+  currentUser = null;
+  showAuthScreen();
+}
+
+async function checkSession(){
+  const { data } = await supabaseClient.auth.getSession();
+  if(data.session){
+    currentUser = data.session.user;
+    showApp();
+  } else {
+    showAuthScreen();
+  }
+}
+
+// ===================== MY ORDERS =====================
+async function openOrders(){
+  document.getElementById('ordersOverlay').style.display = 'flex';
+  document.getElementById('ordersList').innerHTML = '<p style="color:var(--sage);font-size:14px;">Loading…</p>';
+
+  const { data, error } = await supabaseClient
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if(error){
+    document.getElementById('ordersList').innerHTML = `<p style="color:var(--warn);font-size:14px;">Couldn't load orders: ${error.message}</p>`;
+    return;
+  }
+  if(!data.length){
+    document.getElementById('ordersList').innerHTML = '<p style="color:var(--sage);font-size:14px;">No orders yet.</p>';
+    return;
+  }
+
+  document.getElementById('ordersList').innerHTML = data.map(o => {
+    const date = new Date(o.created_at).toLocaleDateString('en-NZ', {day:'numeric',month:'short',year:'numeric'});
+    const statusLabel = (o.status || 'submitted').replace(/_/g,' ');
+    return `
+      <div class="order-card">
+        <div class="order-card-top">
+          <div>
+            <div class="order-ref">${o.job_reference || '(no job reference)'}</div>
+            <div class="order-date">${date}</div>
+          </div>
+          <span class="status-badge status-${o.status}">${statusLabel}</span>
+        </div>
+        <div class="order-total">$${Number(o.total_sell).toLocaleString('en-NZ',{minimumFractionDigits:2})} ex GST</div>
+      </div>`;
+  }).join('');
+}
+
+function closeOrders(){
+  document.getElementById('ordersOverlay').style.display = 'none';
+}
+
 document.addEventListener('click', function(e){
   const el = e.target.closest('[data-action]');
   if(!el) return;
@@ -998,9 +1212,15 @@ document.addEventListener('click', function(e){
     case 'toggleSummary': toggleSummary(); break;
     case 'emailOrder': emailOrder(); break;
     case 'dismissInstall': dismissInstall(); break;
+    case 'authSubmit': authSubmit(); break;
+    case 'authToggleMode': authToggleMode(); break;
+    case 'signOut': signOut(); break;
+    case 'openOrders': openOrders(); break;
+    case 'closeOrders': closeOrders(); break;
   }
 }, false);
 
+checkSession();
 render();
 setTimeout(showInstallPrompt, 800);
 
