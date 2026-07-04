@@ -606,7 +606,7 @@
     <button type="button" class="reveal-btn" id="revealBtn" data-action="toggleSummary">Show parts breakdown</button>
     <div id="summaryContent" style="display:none;"></div>
   </div>
-  <button type="button" class="email-btn" data-action="emailOrder">Email this order</button>
+  <button type="button" class="email-btn" data-action="payAndSubmit">Pay & Submit Order</button>
 
 </div>
 
@@ -959,33 +959,7 @@ function renderSummary(){
   }).join('');
 }
 
-async function saveOrderToSupabase(){
-  const {buy, sell} = computeTotal();
-  const jobRef = document.getElementById('jobRef').value || null;
-  const shipAddr = document.getElementById('shipAddr').value || null;
-
-  const payload = {
-    job_reference: jobRef,
-    shipping_address: shipAddr,
-    system_type: system,
-    zones: zones,
-    extras: extras,
-    total_buy: Math.round(buy*100)/100,
-    total_sell: Math.round(sell*100)/100,
-    margin: MARGIN,
-    status: 'submitted',
-    created_by: currentUser ? currentUser.id : null
-  };
-
-  const { error } = await supabaseClient.from('orders').insert(payload);
-  if(error){
-    console.error('Supabase save failed', error.message);
-    return false;
-  }
-  return true;
-}
-
-async function emailOrder(){
+function buildOrderEmail(){
   const items = computeBOM();
   const {sell} = computeTotal();
   const jobRef = document.getElementById('jobRef').value || '(no job reference entered)';
@@ -996,10 +970,79 @@ async function emailOrder(){
   gi.forEach(it=> body += `${it.qty} x ${it.code} — ${it.desc}\n`);
   body += `\n--- HYDROFLOW ---\n`;
   hf.forEach(it=> body += `${it.qty} x ${it.code} — ${it.desc}\n`);
-  const subject = encodeURIComponent(`Irrigation Order — ${jobRef}`);
+  const subject = `Irrigation Order — ${jobRef}`;
+  return { subject, body };
+}
 
-  await saveOrderToSupabase();
-  window.location.href = `mailto:orders@prestigeirrigation.co.nz?subject=${subject}&body=${encodeURIComponent(body)}`;
+async function saveOrderToSupabase(){
+  const {buy, sell} = computeTotal();
+  const jobRef = document.getElementById('jobRef').value || null;
+  const shipAddr = document.getElementById('shipAddr').value || null;
+  const { subject, body } = buildOrderEmail();
+
+  const payload = {
+    job_reference: jobRef,
+    shipping_address: shipAddr,
+    system_type: system,
+    zones: zones,
+    extras: extras,
+    total_buy: Math.round(buy*100)/100,
+    total_sell: Math.round(sell*100)/100,
+    margin: MARGIN,
+    status: 'pending_payment',
+    created_by: currentUser ? currentUser.id : null,
+    email_subject: subject,
+    email_body: body
+  };
+
+  const { data, error } = await supabaseClient.from('orders').insert(payload).select().single();
+  if(error){
+    console.error('Supabase save failed', error.message);
+    return null;
+  }
+  return data;
+}
+
+async function payAndSubmit(){
+  const btn = document.querySelector('[data-action="payAndSubmit"]');
+  const originalText = btn.textContent;
+  btn.textContent = 'Preparing payment…';
+  btn.disabled = true;
+
+  try{
+    const order = await saveOrderToSupabase();
+    if(!order){
+      alert('Could not save the order. Please check your connection and try again.');
+      return;
+    }
+
+    const { sell } = computeTotal();
+    const jobRef = document.getElementById('jobRef').value || '';
+
+    const res = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        orderId: order.id,
+        amountCents: Math.round(sell * 100),
+        jobReference: jobRef
+      })
+    });
+
+    const result = await res.json();
+    if(!res.ok || !result.url){
+      alert('Could not start payment. Please try again or contact Prestige directly.');
+      return;
+    }
+
+    window.location.href = result.url;
+  } catch(err){
+    console.error('Payment flow error', err);
+    alert('Something went wrong starting payment. Please try again.');
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
 }
 
 function render(){
@@ -1210,7 +1253,7 @@ document.addEventListener('click', function(e){
     case 'stepModel': stepModel(id, el.dataset.mkey, delta); break;
     case 'stepExtra': stepExtra(el.dataset.key, delta); break;
     case 'toggleSummary': toggleSummary(); break;
-    case 'emailOrder': emailOrder(); break;
+    case 'payAndSubmit': payAndSubmit(); break;
     case 'dismissInstall': dismissInstall(); break;
     case 'authSubmit': authSubmit(); break;
     case 'authToggleMode': authToggleMode(); break;
