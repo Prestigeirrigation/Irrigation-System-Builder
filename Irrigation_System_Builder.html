@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Irrigation System Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pine:#1E3D32;
+    --pine-dark:#152C24;
+    --brass:#B08D57;
+    --brass-light:#D2B27E;
+    --limestone:#F3EEE3;
+    --limestone-dark:#E8E1D2;
+    --ink:#1C1912;
+    --sage:#8A9A87;
+    --warn:#B5533C;
+    --warn-bg:#F3DFD8;
+    --card:#FFFFFF;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(28,25,18,0.04), 0 4px 16px rgba(28,25,18,0.06);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  button, input, select{touch-action:manipulation; -webkit-user-select:none; user-select:none;}
+  input{-webkit-user-select:text; user-select:text;}
+  body{
+    background:
+      linear-gradient(var(--limestone), var(--limestone)),
+      repeating-linear-gradient(0deg, rgba(30,61,50,0.035) 0px, rgba(30,61,50,0.035) 1px, transparent 1px, transparent 40px),
+      repeating-linear-gradient(90deg, rgba(30,61,50,0.035) 0px, rgba(30,61,50,0.035) 1px, transparent 1px, transparent 40px);
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    min-height:100dvh;
+    padding-bottom: calc(140px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 16px;}
+
+  /* Header */
+  header{
+    background:var(--pine);
+    color:var(--limestone);
+    padding:28px 16px 32px;
+    border-bottom:3px solid var(--brass);
+  }
+  header .wrap{display:flex;flex-direction:column;gap:4px;}
+  .brand-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--brass-light);
+    margin:0;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:28px;
+    margin:2px 0 0;
+    letter-spacing:-0.01em;
+  }
+  .sub{font-size:13.5px;color:#C9D3CC;margin:6px 0 0;line-height:1.5;}
+
+  /* Job details card */
+  .panel{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px;
+    margin-top:18px;
+  }
+  .field-row{display:flex;flex-wrap:wrap;gap:14px;}
+  .field{flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px;}
+  label{
+    font-size:11.5px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--pine);
+  }
+  input[type=text], input[type=number], select{
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    padding:11px 12px;
+    border:1.5px solid var(--limestone-dark);
+    border-radius:9px;
+    background:#FCFAF6;
+    color:var(--ink);
+    width:100%;
+    transition:border-color .15s ease;
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--brass);
+    background:#fff;
+  }
+
+  /* System type toggle */
+  .toggle-group{display:flex;gap:8px;margin-top:6px;}
+  .toggle-btn{
+    flex:1;
+    padding:12px 10px;
+    border-radius:9px;
+    border:1.5px solid var(--limestone-dark);
+    background:#FCFAF6;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    color:var(--sage);
+    cursor:pointer;
+    transition: all .15s ease;
+    text-align:center;
+  }
+  .toggle-btn.active{
+    background:var(--pine);
+    border-color:var(--pine);
+    color:#fff;
+  }
+
+  /* Section headers */
+  .section-title{
+    font-family:'Fraunces',serif;
+    font-size:20px;
+    font-weight:600;
+    color:var(--pine);
+    margin:28px 0 12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .section-title .rule{flex:1;height:1px;background:var(--sage);opacity:.4;}
+
+  /* Zone cards */
+  .zone-card{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    margin-bottom:14px;
+    overflow:hidden;
+    border-left:5px solid var(--brass);
+    position:relative;
+  }
+  .zone-card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 18px;
+    background:var(--limestone-dark);
+  }
+  .zone-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--pine);
+    font-weight:600;
+    letter-spacing:.04em;
+  }
+  .zone-remove{
+    background:none;border:none;color:var(--warn);cursor:pointer;
+    font-size:13px;font-weight:600;font-family:'Inter',sans-serif;
+    padding:4px 8px;
+  }
+  .zone-body{padding:18px;}
+  .zone-type-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:8px;
+    margin-bottom:16px;
+  }
+  @media (min-width:480px){ .zone-type-grid{grid-template-columns:repeat(4,1fr);} }
+  .type-btn{
+    padding:14px 8px;
+    border-radius:10px;
+    border:1.5px solid var(--limestone-dark);
+    background:#FCFAF6;
+    cursor:pointer;
+    text-align:center;
+    transition:all .15s ease;
+  }
+  .type-btn.active{border-color:var(--pine);background:var(--pine);}
+  .type-btn .t-name{font-size:13px;font-weight:700;color:var(--ink);display:block;}
+  .type-btn.active .t-name{color:#fff;}
+  .type-btn .t-sub{font-size:10.5px;color:var(--sage);display:block;margin-top:2px;}
+  .type-btn.active .t-sub{color:var(--brass-light);}
+
+  .qty-row{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+  .stepper{display:flex;align-items:center;border:1.5px solid var(--limestone-dark);border-radius:9px;overflow:hidden;}
+  .stepper button{
+    width:40px;height:42px;border:none;background:var(--limestone-dark);
+    font-size:18px;color:var(--pine);cursor:pointer;font-weight:700;
+  }
+  .stepper input{border:none;width:56px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;padding:0;}
+  .stepper-sm button{width:34px;height:36px;font-size:16px;}
+  .stepper-sm input{width:44px;font-size:14px;}
+  .max-note{font-size:12px;color:var(--sage);font-family:'IBM Plex Mono',monospace;}
+  .over-cap{color:var(--warn) !important;font-weight:700;}
+
+  .model-grid{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px dashed var(--limestone-dark);
+  }
+  .model-grid-title{font-size:12px;font-weight:600;color:var(--pine);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+  .model-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-bottom:8px;}
+  .model-label{font-size:13.5px;color:var(--ink);}
+  .model-stepper{display:flex;align-items:center;border:1.5px solid var(--limestone-dark);border-radius:8px;overflow:hidden;}
+  .model-stepper button{width:30px;height:32px;border:none;background:var(--limestone-dark);font-size:15px;color:var(--pine);cursor:pointer;font-weight:700;}
+  .model-stepper span{width:34px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;}
+  .model-remaining{
+    margin-top:8px;font-size:12.5px;font-family:'IBM Plex Mono',monospace;
+    padding:8px 10px;border-radius:7px;background:var(--limestone);color:var(--pine);
+  }
+  .model-remaining.bad{background:var(--warn-bg);color:var(--warn);font-weight:700;}
+
+  .add-zone-btn{
+    width:100%;
+    padding:16px;
+    border-radius:var(--radius);
+    border:2px dashed var(--sage);
+    background:transparent;
+    color:var(--pine);
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:16px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .add-zone-btn:hover{border-color:var(--brass);background:rgba(176,141,87,0.06);}
+  .add-zone-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* Extras */
+  .extras-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--limestone-dark);}
+  .extras-row:last-child{border-bottom:none;}
+  .extras-label{font-size:14px;font-weight:500;}
+  .extras-sub{font-size:11.5px;color:var(--sage);margin-top:2px;}
+
+  /* Sticky total bar */
+  .total-bar{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--pine);
+    border-top:3px solid var(--brass);
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+    z-index:9999;
+    pointer-events:none;
+  }
+  .total-bar .wrap{pointer-events:auto;}
+  .total-bar .wrap{display:flex;align-items:center;justify-content:space-between;}
+  .total-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass-light);}
+  .total-figure{font-family:'Fraunces',serif;font-size:32px;font-weight:700;color:#fff;line-height:1;}
+  .total-zones{font-size:12px;color:#C9D3CC;margin-top:2px;}
+
+  .warn-banner{
+    background:var(--warn-bg);
+    color:var(--warn);
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:14px;
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+  }
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--sage);
+    font-size:14px;
+  }
+  .empty-state .fr{font-family:'Fraunces',serif;font-size:18px;color:var(--pine);display:block;margin-bottom:6px;}
+
+  footer{text-align:center;padding:24px 16px 8px;font-size:11.5px;color:var(--sage);font-family:'IBM Plex Mono',monospace;}
+
+  .reveal-btn{
+    width:100%;
+    background:none;
+    border:none;
+    color:var(--pine);
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:15px;
+    cursor:pointer;
+    padding:4px 0;
+    text-align:left;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .reveal-btn::after{content:'▾';font-size:13px;color:var(--brass);}
+  .reveal-btn.open::after{content:'▴';}
+  .summary-group{margin-top:16px;}
+  .summary-group-title{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:#fff;
+    background:var(--pine);
+    padding:6px 10px;
+    border-radius:6px;
+    display:inline-block;
+    margin-bottom:8px;
+  }
+  .summary-group-title.hf{background:#7B3F00;}
+  .summary-row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:6px 0;
+    border-bottom:1px solid var(--limestone);
+    font-size:13.5px;
+  }
+  .summary-row .code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sage);}
+  .summary-row .qty{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--pine);white-space:nowrap;}
+  .summary-row.tbc .qty{color:var(--warn);}
+
+  .email-btn{
+    width:100%;
+    margin-top:14px;
+    padding:14px;
+    border-radius:var(--radius);
+    border:none;
+    background:var(--brass);
+    color:#fff;
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:16px;
+    cursor:pointer;
+  }
+  .email-btn:hover{background:var(--brass-light);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="brand-eyebrow">Prestige Irrigation Services</p>
+    <h1>Irrigation System Builder</h1>
+    <p class="sub">Build the zone list, confirm the system, and the parts order writes itself.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="panel">
+    <div class="field-row">
+      <div class="field">
+        <label for="jobRef">Job Reference</label>
+        <input type="text" id="jobRef" placeholder="e.g. 51 Carrickmore Proposed">
+      </div>
+      <div class="field">
+        <label for="shipAddr">Shipping Address</label>
+        <input type="text" id="shipAddr" placeholder="Where the parts get delivered">
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label>System Type</label>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn active" data-system="DC" data-action="setSystem" data-val="DC">DC (Battery)</button>
+        <button type="button" class="toggle-btn" data-system="AC" data-action="setSystem" data-val="AC">AC (RC2)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Zones<div class="rule"></div></div>
+  <div id="zoneList"></div>
+  <button type="button" class="add-zone-btn" id="addZoneBtn" data-action="addZone">+ Add Zone</button>
+
+  <div class="section-title">Extras<div class="rule"></div></div>
+  <div class="panel">
+    <div class="extras-row">
+      <div>
+        <div class="extras-label">Marker flags</div>
+        <div class="extras-sub">Bundles of 100</div>
+      </div>
+      <div class="stepper stepper-sm">
+        <button type="button" data-action="stepExtra" data-key="flags" data-delta="-1">–</button>
+        <input type="text" id="flagsQty" value="0" readonly>
+        <button type="button" data-action="stepExtra" data-key="flags" data-delta="1">+</button>
+      </div>
+    </div>
+    <div class="extras-row">
+      <div>
+        <div class="extras-label">MDPE PN8 lateral pipe</div>
+        <div class="extras-sub">100m rolls</div>
+      </div>
+      <div class="stepper stepper-sm">
+        <button type="button" data-action="stepExtra" data-key="pn8" data-delta="-1">–</button>
+        <input type="text" id="pn8Qty" value="0" readonly>
+        <button type="button" data-action="stepExtra" data-key="pn8" data-delta="1">+</button>
+      </div>
+    </div>
+    <div class="extras-row">
+      <div>
+        <div class="extras-label">LAT19100 lateral tube</div>
+        <div class="extras-sub">100m rolls</div>
+      </div>
+      <div class="stepper stepper-sm">
+        <button type="button" data-action="stepExtra" data-key="lat19" data-delta="-1">–</button>
+        <input type="text" id="lat19Qty" value="0" readonly>
+        <button type="button" data-action="stepExtra" data-key="lat19" data-delta="1">+</button>
+      </div>
+    </div>
+    <div class="extras-row" id="cableRow">
+      <div>
+        <div class="extras-label">9-core AC control cable</div>
+        <div class="extras-sub">100m rolls — AC systems only</div>
+      </div>
+      <div class="stepper stepper-sm">
+        <button type="button" data-action="stepExtra" data-key="cable" data-delta="-1">–</button>
+        <input type="text" id="cableQty" value="0" readonly>
+        <button type="button" data-action="stepExtra" data-key="cable" data-delta="1">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Order Summary<div class="rule"></div></div>
+  <div class="panel" id="warningsPanel" style="display:none;"></div>
+  <div class="panel">
+    <button type="button" class="reveal-btn" id="revealBtn" data-action="toggleSummary">Show parts breakdown</button>
+    <div id="summaryContent" style="display:none;"></div>
+  </div>
+  <button type="button" class="email-btn" data-action="emailOrder">Email this order</button>
+
+</div>
+
+<div class="total-bar">
+  <div class="wrap">
+    <div>
+      <div class="total-label">Total (ex GST)</div>
+      <div class="total-zones" id="zoneCountLabel">0 zones</div>
+    </div>
+    <div class="total-figure" id="totalFigure">$0.00</div>
+  </div>
+</div>
+
+<footer>Prestige Irrigation Services · Green Fox Supply</footer>
+
+<script>
+// ===================== PRICING ENGINE (ported from Job Order Builder master workbook) =====================
+const MARGIN = 0.05;
+
+const RATES = {
+  body1804: 9.0286, sj2015: 7.425,
+  head5004: 26.9005,
+  gurb2015: 1.44,
+  drip_per_m: 1.0754,
+  microspray: 4.955,
+  mpNozzle: 18.995,
+  solenoidDC: 63.51456, solenoidAC: 35.21705,
+  cableRoll: 245.28760,
+  gut25: 3.738,
+  conn1804: 78.4375, conn5004: 63.9775, connDrip: 26.8561, connMicro: 5.085,
+  vbStd: 82.76, vbJumbo: 172.57,
+  ctrlDC2: 239.57, ctrlDC4: 276.07, ctrlDC6: 488.04, ctrlAC: 324.19,
+  mainlineExclValve: 318.1881, mainlineValveDC: 63.5146, mainlineValveAC: 35.21705,
+  flagBundle: 59.88636,
+  pn8Roll: 208.10, lat19Roll: 143.58,
+  entryKitPerBox: 70.5047,
+};
+
+const ZONE_MAX = { '1804':6, '5004':4, 'Drip':200, 'Micro':25 };
+const ZONE_LABEL = { '1804':'1804 (MP Rotor)', '5004':'5004 Rotor', 'Drip':'Drip', 'Micro':'Micro Spray' };
+const MODEL_LIST = [
+  {key:'m1',label:'MP1000 90-210°'},{key:'m2',label:'MP1000 360°'},
+  {key:'m3',label:'MP2000 90-210°'},{key:'m4',label:'MP2000 360°'},
+  {key:'m5',label:'MP3000 90-210°'},{key:'m6',label:'MP3000 360°'},
+];
+
+let system = 'DC';
+let zones = [];
+let zoneCounter = 0;
+let extras = { flags:0, pn8:0, lat19:0, cable:0 };
+
+function setSystem(s){
+  system = s;
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.toggle('active', b.dataset.system===s));
+  document.getElementById('cableRow').style.display = (s==='AC') ? 'flex' : 'none';
+  render();
+}
+
+function addZone(){
+  if(zones.length>=6) return;
+  zoneCounter++;
+  zones.push({ id: zoneCounter, type:null, qty:0, models:{m1:0,m2:0,m3:0,m4:0,m5:0,m6:0}, dripRolls:1 });
+  render();
+}
+function removeZone(id){
+  zones = zones.filter(z=>z.id!==id);
+  render();
+}
+function setZoneType(id, type){
+  const z = zones.find(z=>z.id===id);
+  z.type = type;
+  z.qty = type==='Drip' ? 0 : 1;
+  if(type==='Drip') z.dripRolls = 1;
+  render();
+}
+function stepQty(id, delta){
+  const z = zones.find(z=>z.id===id);
+  z.qty = Math.max(0, z.qty + delta);
+  render();
+}
+function stepDrip(id, delta){
+  const z = zones.find(z=>z.id===id);
+  z.dripRolls = Math.max(1, Math.min(2, z.dripRolls + delta));
+  render();
+}
+function stepModel(id, key, delta){
+  const z = zones.find(z=>z.id===id);
+  z.models[key] = Math.max(0, z.models[key] + delta);
+  render();
+}
+function stepExtra(key, delta){
+  extras[key] = Math.max(0, extras[key] + delta);
+  document.getElementById(key==='pn8'?'pn8Qty':key==='lat19'?'lat19Qty':key==='cable'?'cableQty':'flagsQty').value = extras[key];
+  render();
+}
+
+function zoneLineCost(z){
+  if(!z.type) return 0;
+  const solenoid = system==='AC' ? RATES.solenoidAC : RATES.solenoidDC;
+  if(z.type==='Drip'){
+    return (z.dripRolls*100)*RATES.drip_per_m + solenoid + RATES.connDrip;
+  }
+  if(z.type==='1804'){
+    const nozzleSum = MODEL_LIST.reduce((s,m)=>s+z.models[m.key]*RATES.mpNozzle,0);
+    return (RATES.body1804+RATES.sj2015)*z.qty + nozzleSum + solenoid + RATES.conn1804;
+  }
+  if(z.type==='5004'){
+    return (RATES.head5004+RATES.sj2015+RATES.gurb2015)*z.qty + solenoid + RATES.conn5004;
+  }
+  if(z.type==='Micro'){
+    return RATES.microspray*z.qty + solenoid + RATES.connMicro;
+  }
+  return 0;
+}
+
+function computeTotal(){
+  const activeZones = zones.filter(z=>z.type).length;
+  let buy = 0;
+  zones.forEach(z=> buy += zoneLineCost(z));
+
+  if(activeZones>0){
+    // Controller
+    buy += system==='AC' ? RATES.ctrlAC : (activeZones<=2?RATES.ctrlDC2:activeZones<=4?RATES.ctrlDC4:RATES.ctrlDC6);
+    // Zone valve box
+    buy += activeZones<=3 ? RATES.vbStd : activeZones<=5 ? RATES.vbJumbo : 2*RATES.vbStd;
+    // Manifold build fittings (GUT25 x1/station + GUHN25 x2/station)
+    buy += activeZones*RATES.gut25 + (2*activeZones)*1.281;
+    // Zone box entry kit
+    const boxCount = activeZones===6 ? 2 : 1;
+    buy += boxCount*RATES.entryKitPerBox;
+  }
+  // Mainline pack (always)
+  buy += RATES.mainlineExclValve + (system==='AC'?RATES.mainlineValveAC:RATES.mainlineValveDC);
+  // Extras
+  buy += extras.flags*RATES.flagBundle;
+  buy += extras.pn8*RATES.pn8Roll;
+  buy += extras.lat19*RATES.lat19Roll;
+  buy += extras.cable*RATES.cableRoll;
+
+  return { buy, sell: buy*(1+MARGIN), activeZones };
+}
+
+function renderZoneCard(z, index){
+  const max = z.type ? ZONE_MAX[z.type] : null;
+  const over = z.type && z.type!=='Drip' && z.qty>max;
+  const modelSum = MODEL_LIST.reduce((s,m)=>s+z.models[m.key],0);
+  const modelBad = z.type==='1804' && modelSum>z.qty;
+
+  let typeButtons = ['1804','5004','Drip','Micro'].map(t=>`
+    <button type="button" class="type-btn ${z.type===t?'active':''}" data-action="setZoneType" data-id="${z.id}" data-type="${t}">
+      <span class="t-name">${ZONE_LABEL[t]}</span>
+      <span class="t-sub">max ${ZONE_MAX[t]}${t==='Drip'?'m rolls':''}</span>
+    </button>`).join('');
+
+  let qtyBlock = '';
+  if(z.type==='Drip'){
+    qtyBlock = `
+      <div class="qty-row">
+        <span style="font-size:13.5px;font-weight:600;">Dripline rolls (100m)</span>
+        <div class="stepper">
+          <button type="button" data-action="stepDrip" data-id="${z.id}" data-delta="-1">–</button>
+          <input type="text" value="${z.dripRolls}" readonly>
+          <button type="button" data-action="stepDrip" data-id="${z.id}" data-delta="1">+</button>
+        </div>
+      </div>`;
+  } else if(z.type){
+    qtyBlock = `
+      <div class="qty-row">
+        <span style="font-size:13.5px;font-weight:600;">Heads</span>
+        <div class="stepper">
+          <button type="button" data-action="stepQty" data-id="${z.id}" data-delta="-1">–</button>
+          <input type="text" value="${z.qty}" readonly>
+          <button type="button" data-action="stepQty" data-id="${z.id}" data-delta="1">+</button>
+        </div>
+        <span class="max-note ${over?'over-cap':''}">${over?'⚠ over max '+max:'max '+max}</span>
+      </div>`;
+  }
+
+  let modelBlock = '';
+  if(z.type==='1804'){
+    modelBlock = `
+      <div class="model-grid">
+        <div class="model-grid-title">Nozzle model split (on-site choice, same price)</div>
+        ${MODEL_LIST.map(m=>`
+          <div class="model-row">
+            <span class="model-label">${m.label}</span>
+            <div class="model-stepper">
+              <button type="button" data-action="stepModel" data-id="${z.id}" data-mkey="${m.key}" data-delta="-1">–</button>
+              <span>${z.models[m.key]}</span>
+              <button type="button" data-action="stepModel" data-id="${z.id}" data-mkey="${m.key}" data-delta="1">+</button>
+            </div>
+          </div>`).join('')}
+        <div class="model-remaining ${modelBad?'bad':''}">${modelBad?`⚠ ${modelSum}/${z.qty} assigned — exceeds heads`:`${modelSum}/${z.qty} nozzles assigned`}</div>
+      </div>`;
+  }
+
+  return `
+    <div class="zone-card">
+      <div class="zone-card-head">
+        <span class="zone-tag">ZONE ${index+1}${z.type?' · '+ZONE_LABEL[z.type]:''}</span>
+        <button type="button" class="zone-remove" data-action="removeZone" data-id="${z.id}">Remove</button>
+      </div>
+      <div class="zone-body">
+        <div class="zone-type-grid">${typeButtons}</div>
+        ${qtyBlock}
+        ${modelBlock}
+      </div>
+    </div>`;
+}
+
+function computeBOM(){
+  const c1804 = zones.filter(z=>z.type==='1804');
+  const c5004 = zones.filter(z=>z.type==='5004');
+  const cDrip = zones.filter(z=>z.type==='Drip');
+  const cMicro = zones.filter(z=>z.type==='Micro');
+  const activeZones = zones.filter(z=>z.type).length;
+  const boxCount = activeZones===6 ? 2 : 1;
+  const heads1804 = c1804.reduce((s,z)=>s+z.qty,0);
+  const heads5004 = c5004.reduce((s,z)=>s+z.qty,0);
+  const headsMicro = cMicro.reduce((s,z)=>s+z.qty,0);
+  const dripRolls = cDrip.reduce((s,z)=>s+z.dripRolls,0);
+  const nonDripNonMicroZones = c1804.length + c5004.length;
+
+  const modelTotals = {m1:0,m2:0,m3:0,m4:0,m5:0,m6:0};
+  c1804.forEach(z=> MODEL_LIST.forEach(m=> modelTotals[m.key]+=z.models[m.key]));
+
+  const gi = [
+    ['RB1804SAM','1804 SprayBody Less Nozzle with SAM', heads1804],
+    ['1502489','Hunter MP1000 Rotator 90-210deg', modelTotals.m1],
+    ['1502471','Hunter MP1000 Rotator 360deg', modelTotals.m2],
+    ['1502492','Hunter MP2000 Rotator 90-210deg', modelTotals.m3],
+    ['1502494','Hunter MP2000 Rotator 360deg', modelTotals.m4],
+    ['1502495','Hunter MP3000 Rotator 90-210deg', modelTotals.m5],
+    ['1501737','Hunter MP3000 Rotator 360deg', modelTotals.m6],
+    ['MQBS36DC12','Micro-Quick Spray 12 GPH DC Pattern (Blue)', headsMicro],
+    ['RB5004PLPC','5004 Plus 4in Rotor', heads5004],
+    ['SJ2015','Hunter Swing Joint 20mm x 15mm BSP', heads1804+heads5004],
+    [system==='AC'?'RB100DVF':'RB100DVFDCL', `25mm DV Valve (${system==='AC'?'AC coil':'9VDC latch'}) — solenoids + master valve`, activeZones+1],
+    ['GUT25','Guyco Threaded Tee 25mm (manifold, 1/station)', activeZones],
+    ['RBVBSTD','Valve Box Standard 1419 (mainline box)', 1],
+    ['RBF25D','25mm Disc Filter 120 Mesh', 1],
+    ['TBC','Watts Dual Check Valve U2-2 25mm — no code confirmed', 1, true],
+    ['RBPSIM40','20mm Pressure Regulator 40psi (drip zones)', cDrip.length],
+    ['PC13160301','Hydro Dripline 1.6L/Hr 100m rolls', dripRolls],
+    ['TBC','Lateral End Plug 19mm — assumption 1/drip zone', cDrip.length, true],
+    ['TBC','Lateral Reducing Tee 19-13mm — no code/price, assumption 1/drip zone', cDrip.length, true],
+    ['TBC','2519 Lateral Male Director ($1.07 confirmed, code TBC)', cMicro.length, true],
+    ['RBFLAG','Marker Flag Bundle of 100', extras.flags],
+    ['MDPP2508.100','MDPE Pipe PN8 25mm 100m roll', extras.pn8],
+    ['LAT19100','Lateral Tube 19mm 100m roll', extras.lat19],
+    ['5804048','MDPE Pipe PN12.5 25m roll (mains)', 1],
+    ['CEELON12','Ceelon Thread Tape 12mm', 3+activeZones],
+    ['RBC95100','9-Core AC Control Cable 100m roll', extras.cable],
+    ['RBWCUL100','Wire Connector 600V (entry kit, 1/box)', boxCount],
+    ['GUP25','Guyco Hex Plug 25mm (entry kit, 1/box)', boxCount],
+    ['GUMFE25','Guyco Male/Fem Elbow 25mm (entry kit, 2/box)', 2*boxCount],
+  ].filter(r=>r[2]>0);
+
+  const hf = [
+    ['EFT25','Esse Female Tee 25mm', 4*c1804.length + 2*c5004.length],
+    ['EFE25','Esse Female Elbow 25mm', 2*c1804.length + 2*c5004.length],
+    ['GURB2015','Guyco Reducing Bush 20x15mm (per 5004 head)', heads5004],
+    ['GURHN2520','Guyco Reducing Nipple 25x20mm (drip)', cDrip.length],
+    ['EMC25','Esse Male Coupling 25mm', nonDripNonMicroZones + 2 + boxCount],
+    ['EE25','Esse Elbow 25mm', 1 + 2*nonDripNonMicroZones + boxCount],
+    ['ET25','Esse Tee 25mm', 1 + 2*nonDripNonMicroZones + boxCount],
+    ['GUHN25','Guyco Threaded Hex Nipple 25mm', 1 + 2*activeZones],
+    ['GUBV25','Guyco Ball Valve 25mm', 1 + boxCount],
+    ['LE19','Lateral Elbow 19mm (drip + micro spray)', 2*(cDrip.length+cMicro.length)],
+    ['EPL25','Esse Plug 25mm (entry kit, 1/box)', boxCount],
+  ].filter(r=>r[2]>0);
+
+  return {gi, hf};
+}
+
+function getWarnings(){
+  const warnings = [];
+  zones.forEach((z,i)=>{
+    if(z.type==='1804'){
+      const sum = MODEL_LIST.reduce((s,m)=>s+z.models[m.key],0);
+      if(sum!==z.qty) warnings.push(`Zone ${i+1}: nozzle models total ${sum}, doesn't match ${z.qty} heads`);
+    }
+    if(z.type && z.type!=='Drip' && z.qty>ZONE_MAX[z.type]) warnings.push(`Zone ${i+1}: ${z.qty} heads exceeds the usual max of ${ZONE_MAX[z.type]} for this zone type`);
+  });
+  return warnings;
+}
+
+function toggleSummary(){
+  const el = document.getElementById('summaryContent');
+  const btn = document.getElementById('revealBtn');
+  const open = el.style.display==='none';
+  el.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('open', open);
+  btn.textContent = open ? 'Hide parts breakdown' : 'Show parts breakdown';
+  if(open) renderSummary();
+}
+
+function renderSummary(){
+  const {gi, hf} = computeBOM();
+  const rowHtml = r => `<div class="summary-row ${r[3]?'tbc':''}"><span>${r[1]}<br><span class="code">${r[0]}</span></span><span class="qty">${r[2]}</span></div>`;
+  document.getElementById('summaryContent').innerHTML = `
+    <div class="summary-group">
+      <span class="summary-group-title">Golf & Irrigation</span>
+      ${gi.map(rowHtml).join('')}
+    </div>
+    <div class="summary-group">
+      <span class="summary-group-title hf">Hydroflow</span>
+      ${hf.map(rowHtml).join('')}
+    </div>`;
+}
+
+function emailOrder(){
+  const {gi, hf} = computeBOM();
+  const {sell} = computeTotal();
+  const jobRef = document.getElementById('jobRef').value || '(no job reference entered)';
+  const shipAddr = document.getElementById('shipAddr').value || '(no shipping address entered)';
+  let body = `GREEN FOX ORDER\nJob Reference: ${jobRef}\nShipping Address: ${shipAddr}\nSystem: ${system}\nTotal (ex GST): $${sell.toFixed(2)}\n\n--- GOLF & IRRIGATION ---\n`;
+  gi.forEach(r=> body += `${r[2]} x ${r[0]} — ${r[1]}\n`);
+  body += `\n--- HYDROFLOW ---\n`;
+  hf.forEach(r=> body += `${r[2]} x ${r[0]} — ${r[1]}\n`);
+  const subject = encodeURIComponent(`Green Fox Order — ${jobRef}`);
+  window.location.href = `mailto:orders@prestigeirrigation.co.nz?subject=${subject}&body=${encodeURIComponent(body)}`;
+}
+
+function render(){
+  document.getElementById('zoneList').innerHTML = zones.length
+    ? zones.map((z,i)=>renderZoneCard(z,i)).join('')
+    : `<div class="empty-state"><span class="fr">No zones yet</span>Tap "Add Zone" below to start building the system.</div>`;
+
+  document.getElementById('addZoneBtn').disabled = zones.length>=6;
+
+  const {sell, activeZones} = computeTotal();
+  document.getElementById('totalFigure').textContent = '$' + sell.toLocaleString('en-NZ',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('zoneCountLabel').textContent = activeZones + (activeZones===1?' zone':' zones');
+
+  const warnings = getWarnings();
+  const wPanel = document.getElementById('warningsPanel');
+  if(warnings.length){
+    wPanel.style.display='block';
+    wPanel.innerHTML = warnings.map(w=>`<div class="warn-banner">⚠ ${w}</div>`).join('');
+  } else {
+    wPanel.style.display='none';
+  }
+
+  if(document.getElementById('summaryContent').style.display==='block') renderSummary();
+}
+
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  e.preventDefault();
+  const action = el.dataset.action;
+  const id = el.dataset.id ? parseInt(el.dataset.id, 10) : null;
+  const delta = el.dataset.delta ? parseInt(el.dataset.delta, 10) : null;
+
+  switch(action){
+    case 'setSystem': setSystem(el.dataset.val); break;
+    case 'addZone': addZone(); break;
+    case 'removeZone': removeZone(id); break;
+    case 'setZoneType': setZoneType(id, el.dataset.type); break;
+    case 'stepQty': stepQty(id, delta); break;
+    case 'stepDrip': stepDrip(id, delta); break;
+    case 'stepModel': stepModel(id, el.dataset.mkey, delta); break;
+    case 'stepExtra': stepExtra(el.dataset.key, delta); break;
+    case 'toggleSummary': toggleSummary(); break;
+    case 'emailOrder': emailOrder(); break;
+  }
+}, false);
+
+render();
+</script>
+</body>
+</html>
