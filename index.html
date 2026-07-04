@@ -54,12 +54,15 @@
     padding:28px 16px 32px;
     border-bottom:3px solid var(--brass);
   }
-  header .wrap{display:flex;flex-direction:column;gap:4px;}
+  header .wrap{display:flex;flex-direction:column;align-items:flex-start;gap:4px;}
   .header-logo{
     height:28px;
     width:auto;
+    max-width:180px;
+    align-self:flex-start;
     display:block;
     margin-bottom:4px;
+    object-fit:contain;
   }
   h1{
     font-family:'Fraunces',serif;
