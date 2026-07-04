@@ -732,15 +732,11 @@ function toggleSummary(){
 
 function renderSummary(){
   const {gi, hf} = computeBOM();
+  const combined = [...gi, ...hf];
   const rowHtml = r => `<div class="summary-row ${r[3]?'tbc':''}"><span>${r[1]}<br><span class="code">${r[0]}</span></span><span class="qty">${r[2]}</span></div>`;
   document.getElementById('summaryContent').innerHTML = `
     <div class="summary-group">
-      <span class="summary-group-title">Golf & Irrigation</span>
-      ${gi.map(rowHtml).join('')}
-    </div>
-    <div class="summary-group">
-      <span class="summary-group-title hf">Hydroflow</span>
-      ${hf.map(rowHtml).join('')}
+      ${combined.map(rowHtml).join('')}
     </div>`;
 }
 
