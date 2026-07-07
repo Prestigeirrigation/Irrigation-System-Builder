@@ -597,28 +597,6 @@
         <button type="button" data-action="stepExtra" data-key="flags" data-delta="1">+</button>
       </div>
     </div>
-    <div class="extras-row">
-      <div>
-        <div class="extras-label">MDPE PN8 lateral pipe</div>
-        <div class="extras-sub">100m rolls</div>
-      </div>
-      <div class="stepper stepper-sm">
-        <button type="button" data-action="stepExtra" data-key="pn8" data-delta="-1">–</button>
-        <input type="text" id="pn8Qty" value="0" readonly>
-        <button type="button" data-action="stepExtra" data-key="pn8" data-delta="1">+</button>
-      </div>
-    </div>
-    <div class="extras-row">
-      <div>
-        <div class="extras-label">LAT19100 lateral tube</div>
-        <div class="extras-sub">100m rolls</div>
-      </div>
-      <div class="stepper stepper-sm">
-        <button type="button" data-action="stepExtra" data-key="lat19" data-delta="-1">–</button>
-        <input type="text" id="lat19Qty" value="0" readonly>
-        <button type="button" data-action="stepExtra" data-key="lat19" data-delta="1">+</button>
-      </div>
-    </div>
     <div class="extras-row" id="cableRow">
       <div>
         <div class="extras-label">9-core AC control cable</div>
@@ -680,9 +658,9 @@ const RATES = {
   cableRoll: 245.28760,
   gut25: 3.738,
   conn1804: 78.4375, conn5004: 63.9775, connDrip: 26.8561, connMicro: 5.085,
-  vbStd: 82.76, vbJumbo: 172.57,
+  vbStd: 82.76, vbJumbo: 172.57378,
   ctrlDC2: 239.57, ctrlDC4: 276.07, ctrlDC6: 488.04, ctrlAC: 324.19,
-  mainlineExclValve: 318.1881, mainlineValveDC: 63.5146, mainlineValveAC: 35.21705,
+  mainlineExclValve: 384.0681, mainlineValveDC: 63.51456, mainlineValveAC: 35.21705,
   flagBundle: 59.88636,
   pn8Roll: 208.10, lat19Roll: 143.58,
   entryKitPerBox: 70.5047,
@@ -742,7 +720,7 @@ function stepModel(id, key, delta){
 }
 function stepExtra(key, delta){
   extras[key] = Math.max(0, extras[key] + delta);
-  document.getElementById(key==='pn8'?'pn8Qty':key==='lat19'?'lat19Qty':key==='cable'?'cableQty':'flagsQty').value = extras[key];
+  document.getElementById(key==='cable'?'cableQty':'flagsQty').value = extras[key];
   render();
 }
 
@@ -795,8 +773,6 @@ function computeTotal(){
   buy += RATES.mainlineExclValve + (system==='AC'?RATES.mainlineValveAC:RATES.mainlineValveDC);
   // Extras
   buy += extras.flags*RATES.flagBundle;
-  buy += extras.pn8*RATES.pn8Roll;
-  buy += extras.lat19*RATES.lat19Roll;
   buy += extras.cable*RATES.cableRoll;
 
   return { buy, sell: buy*(1+MARGIN), activeZones };
@@ -891,13 +867,12 @@ function computeBOM(){
   const items = [
     // --- MAINLINE CONNECTION ---
     {code:'ET25', desc:'Tee into the mains supply feed', supplierDesc:'Esse Tee 25mm', qty:1, cat:'mainline', supplier:'hf'},
-    {code:'5804048', desc:'PN12.5 mains pipe (25m roll) — tap to isolation valve', supplierDesc:'MDPE Pipe Blue MET PN12.5 25mm OD x 25m roll', qty:1, cat:'mainline', supplier:'gi'},
     {code:'GUBV25', desc:'Isolation ball valve — first shutoff after the tap', supplierDesc:'Guyco Ball Valve 25mm', qty:1, cat:'mainline', supplier:'hf'},
     {code:'EE25', desc:'Elbow to route into the isolation valve', supplierDesc:'Esse Elbow 25mm', qty:1, cat:'mainline', supplier:'hf'},
     {code:'EMC25', desc:'Male couplings either side of the isolation valve', supplierDesc:'Esse Male Coupling 25mm', qty:2, cat:'mainline', supplier:'hf'},
     {code:'GUHN25', desc:'Hex nipple, isolation valve to filter', supplierDesc:'Guyco Threaded Hex Nipple 25mm', qty:1, cat:'mainline', supplier:'hf'},
     {code:'RBF25D', desc:'Disc filter — protects downstream valves and heads', supplierDesc:'25mm Large Capacity Plastic Disc Filter - 120 Mesh', qty:1, cat:'mainline', supplier:'gi'},
-    {code:'TBC', desc:'Watts Dual Check Valve — backflow prevention (code TBC)', supplierDesc:'Watts Dual Check Valve U2-2 25mm (code to be confirmed)', qty:1, cat:'mainline', supplier:'gi', tbc:true},
+    {code:'1502202', desc:'Dual check valve — backflow prevention', supplierDesc:'Brass Dual Check Valve F/F 25mm', qty:1, cat:'mainline', supplier:'gi'},
     {code:system==='AC'?'RB100DVF':'RB100DVFDCL', desc:`Master valve (${system==='AC'?'AC coil':'9VDC latch'})`, supplierDesc:`25mm DV Valve (${system==='AC'?'AC coil':'9VDC latch'})`, qty:1, cat:'mainline', supplier:'gi'},
     {code:'RBVBSTD', desc:'Mainline box — houses the run above', supplierDesc:'Valve Box Standard 1419', qty:1, cat:'mainline', supplier:'gi'},
     {code:'CEELON12', desc:'Thread tape — isolation valve + master valve', supplierDesc:'Ceelon Thread Tape 12mm', qty:2, cat:'mainline', supplier:'gi'},
@@ -940,10 +915,8 @@ function computeBOM(){
     {code:'PC13160301', desc:'Dripline, 1.6L/hr emitters, 100m roll', supplierDesc:'Hydro Dripline 1.6L/Hr 30cm 13mm, 100m roll', qty:dripRolls, cat:'lateral', supplier:'gi'},
     {code:'LE19', desc:'Lateral elbow — drip + micro spray lead-in (2/zone)', supplierDesc:'Lateral Elbow 19mm', qty:2*(cDrip.length+cMicro.length), cat:'lateral', supplier:'hf'},
     {code:'TBC', desc:'2519 Lateral Male Director — micro spray step-down ($1.07 confirmed, code TBC)', supplierDesc:'Lateral Male Director 25mm BSP x 19mm barb (code to be confirmed)', qty:cMicro.length, cat:'lateral', supplier:'gi', tbc:true},
-    {code:'LAT19100', desc:'Plain 19mm lateral tube, 100m roll — feeds drip/micro spray', supplierDesc:'Lateral Irrigation Tube 19mm, 100m roll', qty:extras.lat19, cat:'lateral', supplier:'gi'},
     {code:'TBC', desc:'Lateral End Plug — caps each drip run (assumption: 1/drip zone)', supplierDesc:'Lateral End Plug 19mm (code to be confirmed)', qty:cDrip.length, cat:'lateral', supplier:'gi', tbc:true},
     {code:'TBC', desc:'Lateral Reducing Tee, 19mm-13mm — steps into dripline (no code yet)', supplierDesc:'Lateral Reducing Tee 19mm-13mm (code to be confirmed)', qty:cDrip.length, cat:'lateral', supplier:'gi', tbc:true},
-    {code:'MDPP2508.100', desc:'MDPE PN8 lateral distribution pipe, 100m roll', supplierDesc:'MDPE Pipe PN8 25mm, 100m roll', qty:extras.pn8, cat:'lateral', supplier:'gi'},
     {code:'CEELON12', desc:'Thread tape — one flat roll, all swing joints', supplierDesc:'Ceelon Thread Tape 12mm', qty:1, cat:'lateral', supplier:'gi'},
     {code:'RBFLAG', desc:'Marker flags — mark head/line locations on site', supplierDesc:'Rain Bird Marker Flag Bundle of 100', qty:extras.flags, cat:'lateral', supplier:'gi'},
   ];
