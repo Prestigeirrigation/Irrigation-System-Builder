@@ -26,6 +26,8 @@
     --sage:#8A9A87;
     --warn:#B5533C;
     --warn-bg:#F3DFD8;
+    --caution:#9A6B14;
+    --caution-bg:#F5E7C7;
     --card:#FFFFFF;
     --radius:14px;
     --shadow: 0 1px 2px rgba(28,25,18,0.04), 0 4px 16px rgba(28,25,18,0.06);
@@ -245,6 +247,8 @@
     padding:8px 10px;border-radius:7px;background:var(--limestone);color:var(--pine);
   }
   .model-remaining.bad{background:var(--warn-bg);color:var(--warn);font-weight:700;}
+  .model-remaining.exceeded{background:var(--warn-bg);color:var(--warn);font-weight:700;}
+  .model-remaining.caution{background:var(--caution-bg);color:var(--caution);font-weight:700;}
 
   .add-zone-btn{
     width:100%;
@@ -698,6 +702,10 @@ const MODEL_LIST = [
   {key:'m3',label:'MP2000 90-210°'},{key:'m4',label:'MP2000 360°'},
   {key:'m5',label:'MP3000 90-210°'},{key:'m6',label:'MP3000 360°'},
 ];
+// Worst-case (max radius, 55 PSI) flow per head, Hunter MP Rotator performance data, converted to LPM
+const MODEL_FLOW_LPM = { m1:2.23, m2:3.82, m3:3.82, m4:6.59, m5:9.43, m6:16.16 };
+const ZONE_FLOW_CAP_LPM = 45;
+const ZONE_FLOW_CAUTION_LPM = ZONE_FLOW_CAP_LPM * 1.10; // 0-10% over = caution, not hard flag
 
 let system = 'DC';
 let zones = [];
@@ -808,6 +816,8 @@ function renderZoneCard(z, index){
   const over = z.type && z.type!=='Drip' && z.qty>max;
   const modelSum = MODEL_LIST.reduce((s,m)=>s+z.models[m.key],0);
   const modelBad = z.type==='1804' && modelSum>z.qty;
+  const zoneFlowLPM = z.type==='1804' ? MODEL_LIST.reduce((s,m)=>s+z.models[m.key]*MODEL_FLOW_LPM[m.key],0) : 0;
+  const flowStatus = z.type!=='1804' ? 'ok' : zoneFlowLPM<=ZONE_FLOW_CAP_LPM ? 'ok' : zoneFlowLPM<=ZONE_FLOW_CAUTION_LPM ? 'caution' : 'exceeded';
 
   let typeButtons = ['1804','5004','Drip','Micro'].map(t=>`
     <button type="button" class="type-btn ${z.type===t?'active':''}" data-action="setZoneType" data-id="${z.id}" data-type="${t}">
@@ -854,6 +864,7 @@ function renderZoneCard(z, index){
             </div>
           </div>`).join('')}
         <div class="model-remaining ${modelBad?'bad':''}">${modelBad?`⚠ ${modelSum}/${z.qty} assigned — exceeds heads`:`${modelSum}/${z.qty} nozzles assigned`}</div>
+        <div class="model-remaining ${flowStatus!=='ok'?flowStatus:''}" style="margin-top:4px;">${flowStatus==='exceeded'?`⚠ ${zoneFlowLPM.toFixed(1)} LPM worst-case — over ${ZONE_FLOW_CAP_LPM} LPM cap by more than 10%`:flowStatus==='caution'?`⚠ ${zoneFlowLPM.toFixed(1)} LPM worst-case — caution, within 10% of ${ZONE_FLOW_CAP_LPM} LPM cap`:`${zoneFlowLPM.toFixed(1)} LPM worst-case (cap ${ZONE_FLOW_CAP_LPM})`}</div>
       </div>`;
   }
 
@@ -957,6 +968,9 @@ function getWarnings(){
     if(z.type==='1804'){
       const sum = MODEL_LIST.reduce((s,m)=>s+z.models[m.key],0);
       if(sum!==z.qty) warnings.push(`Zone ${i+1}: nozzle models total ${sum}, doesn't match ${z.qty} heads`);
+      const flowLPM = MODEL_LIST.reduce((s,m)=>s+z.models[m.key]*MODEL_FLOW_LPM[m.key],0);
+      if(flowLPM>ZONE_FLOW_CAUTION_LPM) warnings.push(`Zone ${i+1}: ${flowLPM.toFixed(1)} LPM worst-case flow exceeds the ${ZONE_FLOW_CAP_LPM} LPM zone cap by more than 10%`);
+      else if(flowLPM>ZONE_FLOW_CAP_LPM) warnings.push(`Zone ${i+1}: ${flowLPM.toFixed(1)} LPM worst-case flow — caution, within 10% of the ${ZONE_FLOW_CAP_LPM} LPM zone cap`);
     }
     if(z.type && z.type!=='Drip' && z.qty>ZONE_MAX[z.type]) warnings.push(`Zone ${i+1}: ${z.qty} heads exceeds the usual max of ${ZONE_MAX[z.type]} for this zone type`);
   });
